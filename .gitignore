@@ -1,0 +1,10 @@
+*.class
+*.apk
+bin/
+gen/
+.settings/
+proguard/
+*.classpath
+/doExt_do_BaiduLocation/do_build.xml
+/doExt_do_BaiduLocation/do_BaiduLocation.zip
+/doExt_do_BaiduLocation/libs/docore.jar

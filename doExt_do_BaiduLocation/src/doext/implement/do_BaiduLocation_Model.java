@@ -1,5 +1,7 @@
 package doext.implement;
 
+import org.json.JSONObject;
+
 import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
@@ -7,7 +9,7 @@ import com.baidu.location.LocationClientOption;
 import com.baidu.location.LocationClientOption.LocationMode;
 
 import core.DoServiceContainer;
-import core.helper.jsonparse.DoJsonNode;
+import core.helper.DoJsonHelper;
 import core.interfaces.DoIScriptEngine;
 import core.object.DoInvokeResult;
 import core.object.DoSingletonModule;
@@ -40,7 +42,7 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 * @_invokeResult 用于返回方法结果对象
 	 */
 	@Override
-	public boolean invokeSyncMethod(String _methodName, DoJsonNode _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) throws Exception {
+	public boolean invokeSyncMethod(String _methodName, JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) throws Exception {
 		if ("stop".equals(_methodName)) {
 			this.stop(_dictParas, _scriptEngine, _invokeResult);
 			return true;
@@ -49,7 +51,7 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	}
 
 	@Override
-	public void stop(DoJsonNode _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) {
+	public void stop(JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) {
 		if (mLocClient != null && mLocClient.isStarted()) {
 			mLocClient.stop();
 		}
@@ -69,7 +71,7 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 *                    DoInvokeResult(this.getUniqueKey());
 	 */
 	@Override
-	public boolean invokeAsyncMethod(String _methodName, DoJsonNode _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
+	public boolean invokeAsyncMethod(String _methodName, JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
 		if ("getLocation".equals(_methodName)) {
 			this.getLocation(_dictParas, _scriptEngine, _callbackFuncName);
 			return true;
@@ -87,10 +89,10 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 * @_callbackFuncName 回调函数名
 	 */
 	@Override
-	public void getLocation(DoJsonNode _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
-		String _model = _dictParas.getOneText("model", "gps");
-		String _type = _dictParas.getOneText("type", "bd-0911");
-		int _scanSpan = _dictParas.getOneInteger("scanSpan", 5000);
+	public void getLocation(JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
+		String _model = DoJsonHelper.getString(_dictParas, "model", "gps");
+		String _type = DoJsonHelper.getString(_dictParas, "type", "bd-0911");
+		int _scanSpan = DoJsonHelper.getInt(_dictParas, "scanSpan", 5000);
 		setLocationOption(_model, _type, _scanSpan);
 		mLocClient.start();
 		DoInvokeResult _invokeResult = new DoInvokeResult(this.getUniqueKey());
@@ -145,12 +147,12 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 				if (BDLocation.TypeServerError == location.getLocType()) { // 定位失败
 					invokeResult.setError("定位失败");
 				} else {
-					DoJsonNode _jsonNode = new DoJsonNode();
-					_jsonNode.setOneInteger("code", location.getLocType());
-					_jsonNode.setOneText("type", type);
-					_jsonNode.setOneText("latitude", location.getLatitude() + "");
-					_jsonNode.setOneText("longitude", location.getLongitude() + "");
-					_jsonNode.setOneText("address", location.getAddrStr() + "");
+					JSONObject _jsonNode = new JSONObject();
+					_jsonNode.put("code", location.getLocType());
+					_jsonNode.put("type", type);
+					_jsonNode.put("latitude", location.getLatitude() + "");
+					_jsonNode.put("longitude", location.getLongitude() + "");
+					_jsonNode.put("address", location.getAddrStr() + "");
 					invokeResult.setResultNode(_jsonNode);
 				}
 			} catch (Exception e) {

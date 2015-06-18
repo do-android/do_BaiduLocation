@@ -58,6 +58,8 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	public void stop(JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) {
 		if (mLocClient != null && mLocClient.isStarted()) {
 			mLocClient.stop();
+			mLocClient.unRegisterLocationListener(mMyLocationListener);
+			mMyLocationListener = null;
 		}
 	}
 

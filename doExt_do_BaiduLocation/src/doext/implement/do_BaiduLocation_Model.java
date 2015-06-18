@@ -43,6 +43,10 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 */
 	@Override
 	public boolean invokeSyncMethod(String _methodName, JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) throws Exception {
+		if ("start".equals(_methodName)) {
+			this.start(_dictParas, _scriptEngine, _invokeResult);
+			return true;
+		}
 		if ("stop".equals(_methodName)) {
 			this.stop(_dictParas, _scriptEngine, _invokeResult);
 			return true;
@@ -72,10 +76,6 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 */
 	@Override
 	public boolean invokeAsyncMethod(String _methodName, JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
-		if ("getLocation".equals(_methodName)) {
-			this.getLocation(_dictParas, _scriptEngine, _callbackFuncName);
-			return true;
-		}
 		return super.invokeAsyncMethod(_methodName, _dictParas, _scriptEngine, _callbackFuncName);
 	}
 
@@ -89,36 +89,30 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 * @_callbackFuncName 回调函数名
 	 */
 	@Override
-	public void getLocation(JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
-		String _model = DoJsonHelper.getString(_dictParas, "model", "gps");
-		String _type = DoJsonHelper.getString(_dictParas, "type", "bd-0911");
-		int _scanSpan = DoJsonHelper.getInt(_dictParas, "scanSpan", 5000);
-		setLocationOption(_model, _type, _scanSpan);
+	public void start(JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) throws Exception {
+		String _model = DoJsonHelper.getString(_dictParas, "model", "high");
+		boolean _isLoop = DoJsonHelper.getBoolean(_dictParas, "isLoop", false);
+		setLocationOption(_model, _isLoop);
 		mLocClient.start();
-		DoInvokeResult _invokeResult = new DoInvokeResult(this.getUniqueKey());
-		mMyLocationListener = new MyLocationListener(_scriptEngine, _invokeResult, _callbackFuncName, _type);
+		mMyLocationListener = new MyLocationListener();
 		mLocClient.registerLocationListener(mMyLocationListener);
 	}
 
 	// 设置Option
-	private void setLocationOption(String _model, String _type, int _scanSpan) {
+	private void setLocationOption(String _model, boolean _isLoop) {
 		try {
 			LocationClientOption option = new LocationClientOption();
-			if ("accuracy".equals(_model.trim())) {
+			if ("high".equals(_model.trim())) {
 				option.setLocationMode(LocationMode.Hight_Accuracy);
-			} else if ("lowpower".equals(_model.trim())) {
+			} else if ("low".equals(_model.trim())) {
 				option.setLocationMode(LocationMode.Battery_Saving);
 			} else {
 				option.setLocationMode(LocationMode.Device_Sensors);
 			}
 
-			if ("gcj-02".equals(_type.trim())) {
-				option.setCoorType("gcj02");
-			} else {
-				option.setCoorType("bd09ll");
-			}
+			option.setCoorType("bd09ll");
 			option.setOpenGps(true);// 打开gps
-			option.setScanSpan(_scanSpan);
+			option.setScanSpan(_isLoop?30000:300); // scan < 1000 为主动定位，>= 1000 为定时定位
 			option.setNeedDeviceDirect(true);
 			option.setIsNeedAddress(true);
 			mLocClient.setLocOption(option);
@@ -128,17 +122,9 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	}
 
 	private class MyLocationListener implements BDLocationListener {
-
 		private DoInvokeResult invokeResult;
-		private String type;
-		private String callbackFuncName;
-		private DoIScriptEngine scriptEngine;
-
-		public MyLocationListener(DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult, String _callbackFuncName, String _type) {
-			this.invokeResult = _invokeResult;
-			this.callbackFuncName = _callbackFuncName;
-			this.type = _type;
-			this.scriptEngine = _scriptEngine;
+		public MyLocationListener() {
+			this.invokeResult = new DoInvokeResult(getUniqueKey());
 		}
 
 		@Override
@@ -148,8 +134,6 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 					invokeResult.setError("定位失败");
 				} else {
 					JSONObject _jsonNode = new JSONObject();
-					_jsonNode.put("code", location.getLocType());
-					_jsonNode.put("type", type);
 					_jsonNode.put("latitude", location.getLatitude() + "");
 					_jsonNode.put("longitude", location.getLongitude() + "");
 					_jsonNode.put("address", location.getAddrStr() + "");
@@ -158,9 +142,10 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 			} catch (Exception e) {
 				invokeResult.setException(e);
 				DoServiceContainer.getLogEngine().writeError("do_BaiduLocation：getLocation \n", e);
-			} finally {
-				scriptEngine.callback(callbackFuncName, invokeResult);
+			}finally{
+				getEventCenter().fireEvent("result", invokeResult);
 			}
+		
 		}
 	}
 

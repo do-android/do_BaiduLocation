@@ -35,4 +35,10 @@ public class do_BaiduLocation_App implements DoIAppDelegate {
 		this.moduleTypeID = moduleTypeID;
 	}
 
+	@Override
+	public String getTypeID() {
+		// TODO Auto-generated method stub
+		return getModuleTypeID();
+	}
+
 }

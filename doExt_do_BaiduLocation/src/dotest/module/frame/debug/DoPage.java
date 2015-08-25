@@ -1,6 +1,7 @@
 package dotest.module.frame.debug;
 
 import org.json.JSONObject;
+
 import core.interfaces.DoIApp;
 import core.interfaces.DoIPage;
 import core.interfaces.DoIPageView;
@@ -122,4 +123,15 @@ public class DoPage implements DoIPage {
 		return false;
 	}
 
+	@Override
+	public void setTransparent(boolean transparent) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean isTransparent() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }

@@ -56,6 +56,10 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 
 	@Override
 	public void stop(JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) {
+		stop();
+	}
+
+	private void stop() {
 		if (mLocClient != null && mLocClient.isStarted()) {
 			mLocClient.stop();
 			mLocClient.unRegisterLocationListener(mMyLocationListener);
@@ -92,6 +96,7 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	 */
 	@Override
 	public void start(JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) throws Exception {
+		stop();
 		String _model = DoJsonHelper.getString(_dictParas, "model", "high");
 		boolean _isLoop = DoJsonHelper.getBoolean(_dictParas, "isLoop", false);
 		setLocationOption(_model, _isLoop);
@@ -114,7 +119,7 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 
 			option.setCoorType("bd09ll");
 			option.setOpenGps(true);// 打开gps
-			option.setScanSpan(_isLoop?30000:300); // scan < 1000 为主动定位，>= 1000 为定时定位
+			option.setScanSpan(_isLoop ? 30000 : 300); // scan < 1000 为主动定位，>= 1000 为定时定位
 			option.setNeedDeviceDirect(true);
 			option.setIsNeedAddress(true);
 			mLocClient.setLocOption(option);
@@ -125,6 +130,7 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 
 	private class MyLocationListener implements BDLocationListener {
 		private DoInvokeResult invokeResult;
+
 		public MyLocationListener() {
 			this.invokeResult = new DoInvokeResult(getUniqueKey());
 		}
@@ -144,10 +150,10 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 			} catch (Exception e) {
 				invokeResult.setException(e);
 				DoServiceContainer.getLogEngine().writeError("do_BaiduLocation：getLocation \n", e);
-			}finally{
+			} finally {
 				getEventCenter().fireEvent("result", invokeResult);
 			}
-		
+
 		}
 	}
 

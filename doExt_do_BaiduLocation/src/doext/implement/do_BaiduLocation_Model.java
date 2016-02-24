@@ -7,9 +7,12 @@ import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.baidu.location.LocationClientOption.LocationMode;
+import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.utils.DistanceUtil;
 
 import core.DoServiceContainer;
 import core.helper.DoJsonHelper;
+import core.helper.DoTextHelper;
 import core.interfaces.DoIScriptEngine;
 import core.object.DoInvokeResult;
 import core.object.DoSingletonModule;
@@ -51,7 +54,34 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 			this.stop(_dictParas, _scriptEngine, _invokeResult);
 			return true;
 		}
+		if ("getDistance".equals(_methodName)) {
+			this.getDistance(_dictParas, _scriptEngine, _invokeResult);
+			return true;
+		}
 		return super.invokeSyncMethod(_methodName, _dictParas, _scriptEngine, _invokeResult);
+	}
+	
+	private void getDistance(JSONObject _dictParas, DoIScriptEngine _scriptEngine, DoInvokeResult _invokeResult) throws Exception {
+		String _startPoint = DoJsonHelper.getString(_dictParas, "startPoint", null);
+		String _endPoint = DoJsonHelper.getString(_dictParas, "endPoint", null);
+		if (_startPoint == null || _endPoint == null) {
+			throw new Exception("startPoint 或  endPoint 参数值不能为空！");
+		}
+		String[] _latLng1 = _startPoint.split(",");
+		String[] _latLng2 = _endPoint.split(",");
+		if (_latLng1 == null || _latLng2 == null || _latLng1.length != 2 || _latLng2.length != 2) {
+			throw new Exception("startPoint 或  endPoint 参数值非法！");
+		}
+		double _p1_lat = DoTextHelper.strToDouble(_latLng1[0], 0);
+		double _p1_lng = DoTextHelper.strToDouble(_latLng1[1], 0);
+		double _p2_lat = DoTextHelper.strToDouble(_latLng2[0], 0);
+		double _p2_lng = DoTextHelper.strToDouble(_latLng2[1], 0);
+
+		LatLng _p1 = new LatLng(_p1_lat, _p1_lng);
+		LatLng _p2 = new LatLng(_p2_lat, _p2_lng);
+		double _distance = DistanceUtil.getDistance(_p1, _p2);
+
+		_invokeResult.setResultFloat(_distance);
 	}
 
 	@Override

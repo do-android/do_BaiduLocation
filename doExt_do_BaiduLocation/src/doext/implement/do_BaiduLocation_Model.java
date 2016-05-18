@@ -28,7 +28,7 @@ import doext.define.do_BaiduLocation_IMethod;
 public class do_BaiduLocation_Model extends DoSingletonModule implements do_BaiduLocation_IMethod {
 
 	private LocationClient mLocClient;
-	private MyLocationListener mMyLocationListener;
+	private BDLocationListener mMyLocationListener;
 
 	public do_BaiduLocation_Model() throws Exception {
 		super();
@@ -92,32 +92,12 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	}
 
 	@Override
-	public void locate(JSONObject _dictParas, final DoIScriptEngine _scriptEngine, final String _callbackFuncName) throws Exception {
+	public void locate(JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
 		stop();
 		String _model = DoJsonHelper.getString(_dictParas, "model", "high");
 		setLocationOption(_model, 300);
-		mLocClient.registerLocationListener(new BDLocationListener() {
-			@Override
-			public void onReceiveLocation(BDLocation location) {
-				DoInvokeResult _invokeResult = new DoInvokeResult(getUniqueKey());
-				try {
-					if (BDLocation.TypeServerError == location.getLocType()) { // 定位失败
-						_invokeResult.setError("定位失败");
-					} else {
-						JSONObject _jsonNode = new JSONObject();
-						_jsonNode.put("latitude", location.getLatitude() + "");
-						_jsonNode.put("longitude", location.getLongitude() + "");
-						_jsonNode.put("address", location.getAddrStr() + "");
-						_invokeResult.setResultNode(_jsonNode);
-					}
-				} catch (Exception e) {
-					_invokeResult.setException(e);
-					DoServiceContainer.getLogEngine().writeError("do_BaiduLocation：getLocation \n", e);
-				} finally {
-					_scriptEngine.callback(_callbackFuncName, _invokeResult);
-				}
-			}
-		});
+		mMyLocationListener = new MyLocationListener2(_scriptEngine, _callbackFuncName);
+		mLocClient.registerLocationListener(mMyLocationListener);
 		mLocClient.start();
 	}
 
@@ -216,12 +196,45 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 				}
 			} catch (Exception e) {
 				invokeResult.setException(e);
-				DoServiceContainer.getLogEngine().writeError("do_BaiduLocation：getLocation \n", e);
+				DoServiceContainer.getLogEngine().writeError("do_BaiduLocation：startScan \n", e);
 			} finally {
 				getEventCenter().fireEvent("result", invokeResult);
 			}
 
 		}
+	}
+
+	private class MyLocationListener2 implements BDLocationListener {
+
+		private DoIScriptEngine scriptEngine;
+		private String callbackFuncName;
+
+		public MyLocationListener2(DoIScriptEngine _scriptEngine, String _callbackFuncName) {
+			this.scriptEngine = _scriptEngine;
+			this.callbackFuncName = _callbackFuncName;
+		}
+
+		@Override
+		public void onReceiveLocation(BDLocation location) {
+			DoInvokeResult _invokeResult = new DoInvokeResult(getUniqueKey());
+			try {
+				if (BDLocation.TypeServerError == location.getLocType()) { // 定位失败
+					_invokeResult.setError("定位失败");
+				} else {
+					JSONObject _jsonNode = new JSONObject();
+					_jsonNode.put("latitude", location.getLatitude() + "");
+					_jsonNode.put("longitude", location.getLongitude() + "");
+					_jsonNode.put("address", location.getAddrStr() + "");
+					_invokeResult.setResultNode(_jsonNode);
+				}
+			} catch (Exception e) {
+				_invokeResult.setException(e);
+				DoServiceContainer.getLogEngine().writeError("do_BaiduLocation：locate \n", e);
+			} finally {
+				scriptEngine.callback(callbackFuncName, _invokeResult);
+			}
+		}
+
 	}
 
 	///////////////////////////////////

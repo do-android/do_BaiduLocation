@@ -2,12 +2,22 @@ package doext.implement;
 
 import org.json.JSONObject;
 
+import android.text.TextUtils;
+
 import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.baidu.location.LocationClientOption.LocationMode;
+import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.search.geocode.GeoCodeOption;
+import com.baidu.mapapi.search.geocode.GeoCodeResult;
+import com.baidu.mapapi.search.geocode.GeoCoder;
+import com.baidu.mapapi.search.geocode.OnGetGeoCoderResultListener;
+import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption;
+import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult;
+import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult.AddressComponent;
 import com.baidu.mapapi.utils.DistanceUtil;
 
 import core.DoServiceContainer;
@@ -29,11 +39,16 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 
 	private LocationClient mLocClient;
 	private BDLocationListener mMyLocationListener;
+	private GeoCoder mGeoCoder;
 
 	public do_BaiduLocation_Model() throws Exception {
 		super();
+		SDKInitializer.initialize(DoServiceContainer.getPageViewFactory().getAppContext().getApplicationContext());
 		// 定位初始化
 		mLocClient = new LocationClient(DoServiceContainer.getPageViewFactory().getAppContext().getApplicationContext());
+		mGeoCoder = GeoCoder.newInstance();
+		mGetGeoCoderResultListener = new MyGetGeoCoderResultListener();
+		mGeoCoder.setOnGetGeoCodeResultListener(mGetGeoCoderResultListener);
 	}
 
 	/**
@@ -86,6 +101,14 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 	public boolean invokeAsyncMethod(String _methodName, JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
 		if ("locate".equals(_methodName)) {
 			this.locate(_dictParas, _scriptEngine, _callbackFuncName);
+			return true;
+		}
+		if ("geoCode".equals(_methodName)) {
+			this.geoCode(_dictParas, _scriptEngine, _callbackFuncName);
+			return true;
+		}
+		if ("reverseGeoCode".equals(_methodName)) {
+			this.reverseGeoCode(_dictParas, _scriptEngine, _callbackFuncName);
 			return true;
 		}
 		return super.invokeAsyncMethod(_methodName, _dictParas, _scriptEngine, _callbackFuncName);
@@ -280,4 +303,89 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 		}
 	}
 
+	private void reverseGeoCode(JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
+		Double _latitude = DoJsonHelper.getDouble(_dictParas, "latitude", -1);
+		Double _longitude = DoJsonHelper.getDouble(_dictParas, "longitude", -1);
+		DoInvokeResult _invokeResult = new DoInvokeResult(getUniqueKey());
+		if (_latitude > 0 && _longitude > 0) {
+			LatLng _location = new LatLng(_latitude, _longitude);
+			ReverseGeoCodeOption _option = new ReverseGeoCodeOption();
+			_option.location(_location);
+			mGetGeoCoderResultListener.init(_scriptEngine, _callbackFuncName, _invokeResult);
+			mGeoCoder.reverseGeoCode(_option);
+		} else {
+			_invokeResult.setError("中心点经纬度不合法");
+			_scriptEngine.callback(_callbackFuncName, _invokeResult);
+		}
+	}
+
+	private void geoCode(JSONObject _dictParas, DoIScriptEngine _scriptEngine, String _callbackFuncName) throws Exception {
+		String _city = DoJsonHelper.getString(_dictParas, "city", "");
+		if (TextUtils.isEmpty(_city)) {
+			throw new Exception("city参数值不能为空！");
+		}
+		String _address = DoJsonHelper.getString(_dictParas, "address", "");
+		if (TextUtils.isEmpty(_address)) {
+			throw new Exception("address参数值不能为空！");
+		}
+		DoInvokeResult _invokeResult = new DoInvokeResult(getUniqueKey());
+		GeoCodeOption _option = new GeoCodeOption();
+		_option.city(_city);
+		_option.address(_address);
+		mGetGeoCoderResultListener.init(_scriptEngine, _callbackFuncName, _invokeResult);
+		mGeoCoder.geocode(_option);
+
+	}
+
+	private MyGetGeoCoderResultListener mGetGeoCoderResultListener;
+
+	private class MyGetGeoCoderResultListener implements OnGetGeoCoderResultListener {
+
+		private DoIScriptEngine scriptEngine;
+		private String callbackFuncName;
+		private DoInvokeResult invokeResult;
+
+		public void init(DoIScriptEngine _scriptEngine, String _callbackFuncName, DoInvokeResult _invokeResult) {
+			this.scriptEngine = _scriptEngine;
+			this.callbackFuncName = _callbackFuncName;
+			this.invokeResult = _invokeResult;
+		}
+
+		@Override
+		public void onGetGeoCodeResult(GeoCodeResult result) {
+			JSONObject _resultNode = new JSONObject();
+			try {
+				LatLng _location = result.getLocation();
+				_resultNode.put("latitude", _location.latitude); //纬度
+				_resultNode.put("longitude", _location.longitude); //经度
+			} catch (Exception e) {
+			}
+			invokeResult.setResultNode(_resultNode);
+			scriptEngine.callback(callbackFuncName, invokeResult);
+		}
+
+		@Override
+		public void onGetReverseGeoCodeResult(ReverseGeoCodeResult result) {
+			AddressComponent _addressDetail = result.getAddressDetail();
+			String _address = result.getAddress(); //具体地址
+			String _province = _addressDetail.province; //省份名称
+			String _city = _addressDetail.city; //城市名称
+			String _district = _addressDetail.district; //区县名称
+			String _streetName = _addressDetail.street; //街道名称
+			String _streetNumber = _addressDetail.streetNumber; //街道号码
+
+			JSONObject _resultNode = new JSONObject();
+			try {
+				_resultNode.put("address", _address);
+				_resultNode.put("province", _province);
+				_resultNode.put("city", _city);
+				_resultNode.put("district", _district);
+				_resultNode.put("streetName", _streetName);
+				_resultNode.put("streetNumber", _streetNumber);
+			} catch (Exception e) {
+			}
+			invokeResult.setResultNode(_resultNode);
+			scriptEngine.callback(callbackFuncName, invokeResult);
+		}
+	}
 }

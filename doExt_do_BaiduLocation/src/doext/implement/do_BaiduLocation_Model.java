@@ -366,13 +366,20 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 
 		@Override
 		public void onGetReverseGeoCodeResult(ReverseGeoCodeResult result) {
-			AddressComponent _addressDetail = result.getAddressDetail();
 			String _address = result.getAddress(); //具体地址
-			String _province = _addressDetail.province; //省份名称
-			String _city = _addressDetail.city; //城市名称
-			String _district = _addressDetail.district; //区县名称
-			String _streetName = _addressDetail.street; //街道名称
-			String _streetNumber = _addressDetail.streetNumber; //街道号码
+			AddressComponent _addressDetail = result.getAddressDetail();
+			String _province = null; //省份名称
+			String _city = null; //城市名称
+			String _district = null; //区县名称
+			String _streetName = null; //街道名称
+			String _streetNumber = null; //街道号码
+			if (_addressDetail != null) {
+				_province = _addressDetail.province; //省份名称
+				_city = _addressDetail.city; //城市名称
+				_district = _addressDetail.district; //区县名称
+				_streetName = _addressDetail.street; //街道名称
+				_streetNumber = _addressDetail.streetNumber; //街道号码
+			}
 
 			JSONObject _resultNode = new JSONObject();
 			try {

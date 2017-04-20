@@ -1,5 +1,9 @@
 package doext.implement;
 
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.text.TextUtils;
@@ -11,6 +15,7 @@ import com.baidu.location.LocationClientOption;
 import com.baidu.location.LocationClientOption.LocationMode;
 import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.search.core.PoiInfo;
 import com.baidu.mapapi.search.geocode.GeoCodeOption;
 import com.baidu.mapapi.search.geocode.GeoCodeResult;
 import com.baidu.mapapi.search.geocode.GeoCoder;
@@ -389,7 +394,36 @@ public class do_BaiduLocation_Model extends DoSingletonModule implements do_Baid
 				_resultNode.put("district", _district);
 				_resultNode.put("streetName", _streetName);
 				_resultNode.put("streetNumber", _streetNumber);
-			} catch (Exception e) {
+			} catch (JSONException e) {
+			}
+
+			List<PoiInfo> _poiInfos = result.getPoiList();
+			JSONArray _pois = new JSONArray();
+			if (_poiInfos != null) {
+				for (int i = 0; i < _poiInfos.size(); i++) {
+					PoiInfo poi = _poiInfos.get(i);
+					JSONObject _obj = new JSONObject();
+					try {
+						_obj.put("id", poi.uid);
+						_obj.put("name", poi.name);
+						_obj.put("city", poi.city);
+						_obj.put("isPano", poi.isPano);
+						LatLng _location = poi.location;
+						JSONObject _locationObj = new JSONObject();
+						if (_location != null) {
+							_locationObj.put("latitude", _location.latitude);
+							_locationObj.put("longitude", _location.longitude);
+						}
+						_obj.put("location", _locationObj);
+						_obj.put("address", poi.address);
+					} catch (JSONException e) {
+					}
+					_pois.put(_obj);
+				}
+			}
+			try {
+				_resultNode.put("pois", _pois);
+			} catch (JSONException e) {
 			}
 			invokeResult.setResultNode(_resultNode);
 			scriptEngine.callback(callbackFuncName, invokeResult);
